@@ -1,5 +1,21 @@
 AllCops:
+  NewCops: enable
   TargetRubyVersion: 2.4
+
+Layout/LineLength:
+  Max: 120
+
+Metrics/BlockLength:
+  Exclude:
+    - fluent-plugin-input-static-file.gemspec
+    - 'test/**/*.rb'
+
+Metrics/ClassLength:
+  Exclude:
+    - 'test/**/*.rb'
+
+Metrics/MethodLength:
+  Max: 20
 
 Style/StringLiterals:
   Enabled: true
@@ -8,6 +24,3 @@ Style/StringLiterals:
 Style/StringLiteralsInInterpolation:
   Enabled: true
   EnforcedStyle: double_quotes
-
-Layout/LineLength:
-  Max: 120
