@@ -3,7 +3,7 @@
 require "fluent/plugin/input"
 require "fluent/config/error"
 
-require "lib/fluent/plugin/in_static_file/file_tracker"
+require "fluent/plugin/in_static_file/file_tracker"
 
 if Fluent.windows?
   require "fluent/plugin/file_wrapper"
