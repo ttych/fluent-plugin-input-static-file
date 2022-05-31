@@ -40,6 +40,8 @@ module Fluent
 
       desc "The tag of the event."
       config_param :tag, :string
+      desc 'Add the log path being tailed to records. Specify the field name to be used.'
+      config_param :path_key, :string, default: nil
 
       desc "Fluentd will record the position it last read into this file."
       config_param :pos_file, :string, default: nil
@@ -208,6 +210,7 @@ module Fluent
 
         File.open(file_info.path, "rb") do |f|
           @parser.parse(f) do |time, record|
+            record[@path_key] ||= file_info.path unless @path_key.nil?
             router.emit(tag, time, record)
           end
         end
