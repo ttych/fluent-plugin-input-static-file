@@ -40,7 +40,7 @@ module Fluent
 
       desc "The tag of the event."
       config_param :tag, :string
-      desc 'Add the log path being tailed to records. Specify the field name to be used.'
+      desc "Add the log path being tailed to records. Specify the field name to be used."
       config_param :path_key, :string, default: nil
 
       desc "Fluentd will record the position it last read into this file."
@@ -75,7 +75,10 @@ module Fluent
         end
 
         @paths = @path.split(@path_delimiter).map(&:strip).uniq
-        raise Fluent::ConfigError, "#{PLUGIN_NAME}: 'path' parameter is required on #{PLUGIN_NAME} input" if @paths.empty?
+        if @paths.empty?
+          raise Fluent::ConfigError,
+                "#{PLUGIN_NAME}: 'path' parameter is required on #{PLUGIN_NAME} input"
+        end
 
         if @pos_file
           if @variable_store.key?(@pos_file) && !called_in_test?
@@ -223,13 +226,20 @@ module Fluent
         archive(file_info)
       end
 
-
       def archive(file_info)
         return if @archive_to.nil?
 
         file_name = File.basename(file_info.path)
         target_path = format(@archive_to, file_name)
 
+        target_path_basedir = if target_path.end_with?("/")
+                                target_path
+                              else
+                                File.dirname(target_path)
+                              end
+        FileUtils.mkdir_p(target_path_basedir, mode: @dir_perm)
+
+        log.debug("#{PLUGIN_NAME}: archiving #{file_info.path} to #{target_path}")
         FileUtils.mv(file_info.path, target_path)
       rescue StandardError => e
         log.warn("#{PLUGIN_NAME}: can't archive #{file_info.path} to #{target_path}: #{e}")
