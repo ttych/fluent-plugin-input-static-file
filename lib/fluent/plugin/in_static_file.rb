@@ -15,13 +15,13 @@ module Fluent
   module Plugin
     # InStaticFile is an input plugin for file with static content
     class InStaticFile < Fluent::Plugin::Input
-      Fluent::Plugin.register_input("static_file", self)
+      PLUGIN_NAME = "static_file"
+
+      Fluent::Plugin.register_input(PLUGIN_NAME, self)
 
       helpers :timer, :compat_parameters, :parser
 
       RESERVED_CHARS = ["/", "*", "%"].freeze
-
-      # FIXME: path_key
 
       desc "The paths to read. Multiple paths can be specified, separated by comma."
       config_param :path, :string
@@ -48,6 +48,9 @@ module Fluent
       desc "Follow inodes instead of following file names. Guarantees more stable delivery and allows to use * in path pattern with rotating files"
       config_param :follow_inodes, :bool, default: false
 
+      desc "When processed move to another location"
+      config_param :archive_to, :string, default: nil
+
       def initialize
         super
 
@@ -72,19 +75,19 @@ module Fluent
         end
 
         @paths = @path.split(@path_delimiter).map(&:strip).uniq
-        raise Fluent::ConfigError, "static_file: 'path' parameter is required on static_file input" if @paths.empty?
+        raise Fluent::ConfigError, "#{PLUGIN_NAME}: 'path' parameter is required on #{PLUGIN_NAME} input" if @paths.empty?
 
         if @pos_file
           if @variable_store.key?(@pos_file) && !called_in_test?
             plugin_id_using_this_path = @variable_store[@pos_file]
             raise Fluent::ConfigError,
-                  "Other 'in_static_file' plugin already use same pos_file path: plugin_id = #{plugin_id_using_this_path}, pos_file path = #{@pos_file}"
+                  "Other '#{PLUGIN_NAME}' plugin already use same pos_file path: plugin_id = #{plugin_id_using_this_path}, pos_file path = #{@pos_file}"
           end
           @variable_store[@pos_file] = plugin_id
         else
           raise Fluent::ConfigError, "Can't follow inodes without pos_file configuration parameter" if @follow_inodes
 
-          log.warn "'pos_file PATH' parameter is not set to a 'static_file' source."
+          log.warn "'pos_file PATH' parameter is not set to a '#{PLUGIN_NAME}' source."
           log.warn "this parameter is highly recommended to save the file status."
         end
 
@@ -190,21 +193,21 @@ module Fluent
       end
 
       def untrack_files(files_info)
-        log.debug("static_file: untrack files: #{files_info.keys}")
+        log.debug("#{PLUGIN_NAME}: untrack files: #{files_info.keys}")
         files_info.each do |_id, file_info|
           @file_tracker.remove(file_info)
         end
       end
 
       def process_files(files_info)
-        log.debug("static_file: process files: #{files_info.keys}")
+        log.debug("#{PLUGIN_NAME}: process files: #{files_info.keys}")
         files_info.each do |_id, file_info|
           process_file(file_info)
         end
       end
 
       def process_file(file_info)
-        log.debug("static_file: process file: #{file_info.path}")
+        log.debug("#{PLUGIN_NAME}: process file: #{file_info.path}")
 
         return if @file_tracker.has?(file_info)
 
@@ -216,6 +219,20 @@ module Fluent
         end
 
         @file_tracker.add(file_info)
+
+        archive(file_info)
+      end
+
+
+      def archive(file_info)
+        return if @archive_to.nil?
+
+        file_name = File.basename(file_info.path)
+        target_path = format(@archive_to, file_name)
+
+        FileUtils.mv(file_info.path, target_path)
+      rescue StandardError => e
+        log.warn("#{PLUGIN_NAME}: can't archive #{file_info.path} to #{target_path}: #{e}")
       end
     end
   end
