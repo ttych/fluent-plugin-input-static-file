@@ -77,7 +77,7 @@ module Fluent
 
             @file.pos = 0
             @file.truncate(0)
-            @file.write(@cache.values.maps(&:to_file_tracker_entry_format).join)
+            @file.write(@cache.values.map(&:to_file_tracker_entry_format).join)
           end
         end
       end
