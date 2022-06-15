@@ -3,7 +3,7 @@
 module Fluent
   module Plugin
     module InputStaticFile
-      VERSION = "0.2.0"
+      VERSION = "0.2.1"
     end
   end
 end
