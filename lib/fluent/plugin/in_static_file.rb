@@ -224,6 +224,9 @@ module Fluent
         @file_tracker.add(file_info)
 
         archive(file_info)
+      rescue StandardError => e
+        log.error "#{PLUGIN_NAME}: trying to process unparsable file #{file_info.path}: #{e}"
+        log.debug_backtrace(e.backtrace)
       end
 
       def archive(file_info)
